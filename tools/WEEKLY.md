@@ -18,3 +18,8 @@
 - `python3 tools/render.py build <日付…>` で reels/MMDD.mp4・carousel/MMDD_n.jpg・stories/MMDD.jpg を生成。
 - `python3 tools/render.py captions` で captions.json を再生成（毎日の自動投稿はこれを読む）。
 - 毎日21:07の自動投稿は captions.json と reels/・carousel/ を GitHub Pages から読む。
+
+## キャプションの型（2026-11-16 オーナー承認）
+- cap は「タイトル行 → 場面の一言（例：「仕事中、気づくとあごを触ってる」）→ 本文（チェック・Q&A等）→ 安心材料（ビデオ通話・受付20時まで・スマホだけ 等の具体情報）→ 3ステップ行 → コメント誘導」の順。
+- 3ステップ行は固定：「📱 LINEで予約 → ビデオ通話で医師が診察 → 必要な方にはお薬をご自宅へ」
+- GLP-1の日は薬をすすめる言い回し（「〜をご提案」「痩せやすくなる」等）を使わず、「合う方法かは医師が判断」とする。実績数・効果の数字は根拠がない限り入れない。
