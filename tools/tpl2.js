@@ -98,3 +98,17 @@ function frameR(i,t){
     ${x.glp?`<div class="note tx" style="color:#D6EEF3;bottom:100px;line-height:1.5">PR｜自由診療（保険適用外）｜受付 10:00〜20:00<br>${GLPNOTE}</div>`:`<div class="note tx" style="color:#D6EEF3">PR｜自由診療（保険適用外）｜受付 10:00〜20:00</div>`}</div>`;}
   return h;
 }
+/* ---------- reel cover (1080x1920; 重要要素はグリッド表示の3:4範囲 y240〜1680 に収める) ---------- */
+function cover2HTML(x){
+  const f=fs(x.hook,900,128), n=x.hook.split("\n").length, subTop=430+f*1.28*n+36;
+  return `<div class="ig feed ${cat2(x)}" style="width:1080px;height:1920px;position:relative;overflow:hidden">
+    <div class="blob" style="width:1000px;height:1000px;right:-300px;top:900px"></div>
+    <div class="top" style="top:290px"><span class="brand">シェアクリ神戸</span><span class="chip">${x.c}</span></div>
+    <h1 style="top:430px;font-size:${f}px">${x.hook}</h1>
+    <div class="tx" style="position:absolute;left:64px;right:64px;top:${subTop}px;font-size:${Math.min(48,fs(x.sub,900,48))}px;font-weight:700;color:#4C6A73;text-wrap:balance;word-break:auto-phrase">${x.sub}</div>
+    <img src="${SHIBA_IMG.point}" style="position:absolute;right:40px;bottom:362px;width:560px">
+    <div class="card" style="left:64px;top:1100px;width:400px;padding:30px 34px;font-size:38px;font-weight:900;color:#1F7F96;line-height:1.45">シバ先生が<br>1分で解説🐾</div>
+    <div class="foot" style="top:1560px;bottom:auto;height:120px"><b>初めてでも安心｜LINEで完結</b></div>
+    <div class="gnote" style="top:1720px">PR｜自由診療（保険適用外）${x.glp?"<br>"+GLPNOTE:""}</div>
+  </div>`;
+}

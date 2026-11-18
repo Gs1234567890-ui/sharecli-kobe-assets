@@ -4,6 +4,7 @@
 #   python3 tools/render.py build  1116 1117 ...   リール/カルーセル/ストーリーズを生成して reels/ carousel/ stories/ に保存
 #   python3 tools/render.py sheets 1116 1117 ...   目視チェック用の一覧画像を sheets/ に作成（チェック2・3回目）
 #   python3 tools/render.py captions               plan.js から captions.json を作り直す
+#   python3 tools/render.py covers 1116 1117 ...   リールのカバー画像 covers/MMDD.jpg だけを作る（build でも自動で作る）
 #   python3 tools/render.py bgm    1116 1117 ...   既存の reels/MMDD.mp4 に BGM を入れ直す（tools/bgm/*.mp3 を日付順にローテーション）
 # BGM: tools/bgm/ に（mp3 は .gitignore 済み。無いときは reels/_bgm_ref.mp4 の音声を使う）商用利用OKのフリーBGM（DOVA-SYNDROME 等、各曲の個別規約も確認済みのもの）を置くと build 時に自動で入る。
 #      plan.js の項目に bgm:"ファイル名.mp3" があればその曲を優先。tools/bgm が空なら無音のまま。
@@ -82,11 +83,22 @@ with sync_playwright() as p:
             pg.evaluate("document.getElementById('R').style.display='none'")
             if car(i):
                 for n in range(1,6): chk(f'CAR {k}-{n}',f"document.getElementById('s').innerHTML=slideHTML(P[{i}],{n})",1080,1350,'#s > div')
+            chk(f'COVER {k}',f"document.getElementById('s').innerHTML=cover2HTML(P[{i}])",1080,1920,'#s > div')
             chk(f'STORY {k}',f"document.getElementById('s').innerHTML=story2HTML(P[{i}])",1080,1920,'#s > div')
             pg.evaluate("document.getElementById('s').innerHTML='';document.getElementById('R').style.display='block'")
             for t in [2.0,8.2,11.2,14.8]: chk(f'REEL {k} t={t}',f"document.getElementById('R').innerHTML=frameR({i},{t})",1080,1920,'#R')
         for a,v in iss.items(): print(a,'|',' / '.join(v))
         print('TOTAL',len(iss)); sys.exit(1 if iss else 0)
+    def cover(k,i):
+        os.makedirs(os.path.join(R,'covers'),exist_ok=True)
+        pg.evaluate("document.getElementById('R').style.display='none'")
+        pg.set_viewport_size({'width':1080,'height':1920}); pg.evaluate(f"document.getElementById('s').innerHTML=cover2HTML(P[{i}])")
+        pg.wait_for_timeout(50); pg.screenshot(path='/tmp/_cv.png',clip={'x':0,'y':0,'width':1080,'height':1920})
+        from PIL import Image; Image.open('/tmp/_cv.png').convert('RGB').save(os.path.join(R,'covers',f'{k}.jpg'),quality=92)
+        pg.evaluate("document.getElementById('s').innerHTML=''")
+    if mode=='covers':
+        for k,i in idx.items(): cover(k,i); print('cover',k,flush=True)
+        sys.exit()
     if mode=='build':
         from PIL import Image
         for d in ['reels','carousel','stories']: os.makedirs(os.path.join(R,d),exist_ok=True)
@@ -101,6 +113,7 @@ with sync_playwright() as p:
             pg.set_viewport_size({'width':1080,'height':1920}); pg.evaluate(f"document.getElementById('s').innerHTML=story2HTML(P[{i}])")
             pg.screenshot(path=tmp,clip={'x':0,'y':0,'width':1080,'height':1920})
             Image.open(tmp).convert('RGB').save(os.path.join(R,'stories',f'{k}.jpg'),quality=92)
+            cover(k,i)
             pg.evaluate("document.getElementById('s').innerHTML='';document.getElementById('R').style.display='block'")
             fr=f'/tmp/_fr{k}'; shutil.rmtree(fr,ignore_errors=True); os.makedirs(fr)
             for n in range(450):

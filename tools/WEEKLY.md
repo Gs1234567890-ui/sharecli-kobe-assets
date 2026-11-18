@@ -30,3 +30,8 @@
 - tools/bgm/ に置いた曲（DOVA-SYNDROME など商用利用OK・各曲の個別規約も確認済みのもの）が build 時に自動でリールに入る（日付でローテーション、plan.js の bgm:"ファイル名" で指定も可）。
 - 既存リールに入れ直すとき：`python3 tools/render.py bgm <日付…>`。
 - 「作業用BGM」的に音楽が主役になる使い方はしない（DOVA規約）。曲の追加はオーナーが選んだものだけ。
+
+## リールのカバー画像（2026-11-18 追加）
+- build 時に covers/MMDD.jpg（1080×1920、tpl2.js の cover2HTML）が自動で作られる。単体で作るときは `python3 tools/render.py covers <日付…>`。
+- 文字・キャラはグリッド表示の3:4範囲（y240〜1680）に収める。check に COVER も含まれる。
+- 毎日の自動投稿は covers/MMDD.jpg があれば cover_url に指定する。
