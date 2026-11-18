@@ -4,6 +4,9 @@
 #   python3 tools/render.py build  1116 1117 ...   リール/カルーセル/ストーリーズを生成して reels/ carousel/ stories/ に保存
 #   python3 tools/render.py sheets 1116 1117 ...   目視チェック用の一覧画像を sheets/ に作成（チェック2・3回目）
 #   python3 tools/render.py captions               plan.js から captions.json を作り直す
+#   python3 tools/render.py bgm    1116 1117 ...   既存の reels/MMDD.mp4 に BGM を入れ直す（tools/bgm/*.mp3 を日付順にローテーション）
+# BGM: tools/bgm/ に商用利用OKのフリーBGM（DOVA-SYNDROME 等、各曲の個別規約も確認済みのもの）を置くと build 時に自動で入る。
+#      plan.js の項目に bgm:"ファイル名.mp3" があればその曲を優先。tools/bgm が空なら無音のまま。
 # 日付キーは MMDD。plan.js の P 配列に該当日 (d:"11/16" 形式) が必要。
 import os, sys, json, base64, subprocess, shutil, glob
 from playwright.sync_api import sync_playwright
@@ -13,6 +16,25 @@ b64=lambda f:'data:image/png;base64,'+base64.b64encode(open(f,'rb').read()).deco
 SH="const SHIBA_IMG="+json.dumps({k:b64(os.path.join(T,'char',f'shibasensei_{k}.png')) for k in ['smile','point','phone']})+";"
 JS="\n".join([rd('reelcss.js'),rd('lib.js'),rd('plan.js'),rd('tpl2.js'),SH,rd('check.js')])
 mode=sys.argv[1]; keys=sys.argv[2:]
+BGMD=os.path.join(T,'bgm')
+def bgm_for(k):
+    fs=sorted(f for f in os.listdir(BGMD) if f.lower().endswith(('.mp3','.wav','.m4a'))) if os.path.isdir(BGMD) else []
+    if not fs: return None
+    pick=subprocess.run(['node','-e',rd('plan.js')+f';const x=P.find(x=>x.d.replace("/","")==="{k}");console.log(x&&x.bgm||"")'],capture_output=True,text=True).stdout.strip()
+    if pick and pick in fs: return os.path.join(BGMD,pick)
+    import datetime; n=datetime.date(2026,int(k[:2]),int(k[2:])).toordinal()
+    return os.path.join(BGMD,fs[n%len(fs)])
+def add_bgm(k):
+    v=os.path.join(R,'reels',k+'.mp4'); a=bgm_for(k)
+    if not a or not os.path.exists(v): return False
+    o=v+'.tmp.mp4'
+    subprocess.run(['ffmpeg','-y','-loglevel','error','-i',v,'-stream_loop','-1','-i',a,'-map','0:v:0','-map','1:a:0','-c:v','copy',
+        '-af','volume=0.55,afade=t=in:d=0.3,afade=t=out:st=13.5:d=1.5','-c:a','aac','-b:a','128k','-ar','44100','-ac','2',
+        '-t','15','-shortest','-movflags','+faststart',o],check=True)
+    os.replace(o,v); print('bgm',k,'<-',os.path.basename(a),flush=True); return True
+if mode=='bgm':
+    for k in keys: add_bgm(k) or print('skip',k,'(BGMなし or 動画なし)')
+    sys.exit()
 
 if mode=='captions':
     out=subprocess.run(['node','-e',rd('plan.js')+';const o={};for(const x of P){o[x.d.replace("/","")]={date:x.d,carousel:!!x.car,caption:fullCap2(x)}};console.log(JSON.stringify(o,null,1))'],capture_output=True,text=True,check=True).stdout
@@ -78,4 +100,4 @@ with sync_playwright() as p:
                 pg.evaluate(f"document.getElementById('R').innerHTML=frameR({i},{n/30})")
                 pg.screenshot(path=os.path.join(fr,f'{n:04d}.jpg'),type='jpeg',quality=90)
             subprocess.run(['ffmpeg','-y','-loglevel','error','-framerate','30','-i',os.path.join(fr,'%04d.jpg'),'-c:v','libx264','-pix_fmt','yuv420p','-crf','20','-movflags','+faststart',os.path.join(R,'reels',k+'.mp4')],check=True)
-            shutil.rmtree(fr); print('built',k,flush=True)
+            shutil.rmtree(fr); add_bgm(k); print('built',k,flush=True)
