@@ -5,7 +5,7 @@
 #   python3 tools/render.py sheets 1116 1117 ...   目視チェック用の一覧画像を sheets/ に作成（チェック2・3回目）
 #   python3 tools/render.py captions               plan.js から captions.json を作り直す
 #   python3 tools/render.py bgm    1116 1117 ...   既存の reels/MMDD.mp4 に BGM を入れ直す（tools/bgm/*.mp3 を日付順にローテーション）
-# BGM: tools/bgm/ に商用利用OKのフリーBGM（DOVA-SYNDROME 等、各曲の個別規約も確認済みのもの）を置くと build 時に自動で入る。
+# BGM: tools/bgm/ に（mp3 は .gitignore 済み。無いときは reels/_bgm_ref.mp4 の音声を使う）商用利用OKのフリーBGM（DOVA-SYNDROME 等、各曲の個別規約も確認済みのもの）を置くと build 時に自動で入る。
 #      plan.js の項目に bgm:"ファイル名.mp3" があればその曲を優先。tools/bgm が空なら無音のまま。
 # 日付キーは MMDD。plan.js の P 配列に該当日 (d:"11/16" 形式) が必要。
 import os, sys, json, base64, subprocess, shutil, glob
@@ -24,14 +24,21 @@ def bgm_for(k):
     if pick and pick in fs: return os.path.join(BGMD,pick)
     import datetime; n=datetime.date(2026,int(k[:2]),int(k[2:])).toordinal()
     return os.path.join(BGMD,fs[n%len(fs)])
+BGM_REF=os.path.join(R,'reels','_bgm_ref.mp4')  # 規約上 mp3 単体は公開しないため、BGM入り参照リールから音声を流用する
 def add_bgm(k):
     v=os.path.join(R,'reels',k+'.mp4'); a=bgm_for(k)
-    if not a or not os.path.exists(v): return False
+    if not os.path.exists(v): return False
     o=v+'.tmp.mp4'
-    subprocess.run(['ffmpeg','-y','-loglevel','error','-i',v,'-stream_loop','-1','-i',a,'-map','0:v:0','-map','1:a:0','-c:v','copy',
-        '-af','volume=0.55,afade=t=in:d=0.3,afade=t=out:st=13.5:d=1.5','-c:a','aac','-b:a','128k','-ar','44100','-ac','2',
-        '-t','15','-shortest','-movflags','+faststart',o],check=True)
-    os.replace(o,v); print('bgm',k,'<-',os.path.basename(a),flush=True); return True
+    if a:
+        subprocess.run(['ffmpeg','-y','-loglevel','error','-i',v,'-stream_loop','-1','-i',a,'-map','0:v:0','-map','1:a:0','-c:v','copy',
+            '-af','volume=0.55,afade=t=in:d=0.3,afade=t=out:st=13.5:d=1.5','-c:a','aac','-b:a','128k','-ar','44100','-ac','2',
+            '-t','15','-shortest','-movflags','+faststart',o],check=True)
+        src=os.path.basename(a)
+    elif os.path.exists(BGM_REF):
+        subprocess.run(['ffmpeg','-y','-loglevel','error','-i',v,'-i',BGM_REF,'-map','0:v:0','-map','1:a:0','-c','copy','-t','15','-movflags','+faststart',o],check=True)
+        src='_bgm_ref.mp4'
+    else: return False
+    os.replace(o,v); print('bgm',k,'<-',src,flush=True); return True
 if mode=='bgm':
     for k in keys: add_bgm(k) or print('skip',k,'(BGMなし or 動画なし)')
     sys.exit()

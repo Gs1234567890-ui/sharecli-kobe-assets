@@ -1,1 +1,3 @@
 sheets/
+tools/bgm/*
+!tools/bgm/.gitkeep
